@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.DS_Store
+# work artifacts (never commit downloaded videos / subtitles / intermediate files)
+*.mp4
+*.vtt
+*.srt
+*.ass
+*.png
+phrases.json
+lines*.json
+lines*_en.txt
+zh*.txt
