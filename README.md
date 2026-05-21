@@ -1,53 +1,47 @@
 # youtube-bilingual-hardburn
 
-> 仓库地址 · Repo: https://github.com/tengfei0114us/youtube-bilingual-hardburn
+> 仓库 · Repo: https://github.com/tengfei0114us/youtube-bilingual-hardburn
 
-把英文（或任意外语）视频做成**中英双语硬字幕**视频——字幕烧进画面像素，
-任何播放器、任何平台都显示，关不掉。适合把英文演讲/访谈/教程发到
-小红书、微信、B站。
+把英文视频配上中英双语字幕、直接烧进画面的工具。下下来就是一个带字幕的视频文件，手机、电脑、断网、发给别人，走到哪看到哪。
 
-## 它解决什么
+我做这个就是为了自己学 AI。YouTube 上好东西太多了，但基本都是英文；YouTube 自带的翻译又不好用，看着费劲。我英文不算差，可一边听一边啃终归慢，我更想能踏踏实实坐下来，把一个两小时的硬核视频真正看明白。所以干脆自己动手：把视频下下来、配上中英字幕，一来看着省力，二来存在本地，想什么时候看就什么时候看。说白了，外面那么多好内容，不该因为是英文、因为要翻墙，就跟大多数人没关系。
 
-YouTube 自动字幕几乎没有标点，传统"按句号断句"会把整片塌成一句字幕。
-本 skill 改为按字符数 + 时间重组字幕行，再逐行翻译，**严格 1:1 对齐校验**，
-最后生成中文在上、英文在下的双语 ASS，用 ffmpeg 硬烧。
+真正逼我自己写一套的，是 YouTube 的自动字幕几乎没有标点。市面上那些"按句号断句"的工具一上来就把两小时的字幕揉成一句话，根本没法用。我把整条流程从头串了一遍，顺手做成了这个 skill。
 
-## 流程
+它干的就是一条链：下视频 → 扒字幕 → 把碎成一截一截的字幕重新拼成能读的句子 → 一行一行翻译 → 中文在上英文在下 → ffmpeg 烧进画面。
 
+## 注意事项
+
+1. **这不是纯脚本工具，翻译那步要 AI 在环。** 得在 Claude Code 或 OpenAI Codex 里跑，让 AI 一行行翻——两小时视频一千六百多行，省不掉。这工具帮你的是少踩坑，不是把长视频变成点一下就完事。clone 下来直接跑脚本是跑不出结果的。
+2. **`yt-dlp` 要保持最新。** YouTube 反爬经常变，版本旧了下载会报 403。先升级：`brew upgrade yt-dlp`（或 `pip install -U yt-dlp`）。
+3. **国内要挂代理。** 下 YouTube 得给 yt-dlp 加 `--proxy "http://127.0.0.1:7897"`（端口换成你自己代理的）。
+4. **得装中文字体，否则中文显示成方块。** macOS 自带 `PingFang SC`，不用管；Linux 装 Noto 后给脚本传 `--font "Noto Sans CJK SC"`；Windows 传 `--font "Microsoft YaHei"`。
+5. **翻完一定先对齐再烧。** 跑一下 `verify_align.py` 确认中英行数严格 1:1，对齐了再烧进视频。错一行，后面全乱——这步千万别省。
+
+## 怎么用
+
+用 Claude Code 的话，clone 到 skills 目录：
+
+```bash
+git clone https://github.com/tengfei0114us/youtube-bilingual-hardburn ~/.claude/skills/youtube-bilingual-hardburn
 ```
-下载 → 解析字幕 → 重组可读行 → 逐行翻译(LLM) → verify_align 校验 → 双语 ASS → ffmpeg 硬烧 → 抽帧验证
-```
 
-## 安装
+然后丢给它一个视频链接、说一句"把这个做成中英双语"就行，剩下的它按 `SKILL.md` 一步步走。
 
-- **Claude Code**：克隆到 `~/.claude/skills/`，对它说"把这个视频做成中英双语"即可。
-  ```bash
-  git clone <this-repo> ~/.claude/skills/youtube-bilingual-hardburn
-  ```
-- **OpenAI Codex / 其他 agent**：脚本是纯 Python + ffmpeg/yt-dlp，无 Claude 专属依赖。
-  把文件夹放进项目，在 `AGENTS.md` 指向 `SKILL.md`，或直接让 agent"按 SKILL.md 做"。
-  详见 [`references/codex-usage.md`](references/codex-usage.md)。
+用 OpenAI Codex 或别的 agent 也能跑，脚本是纯 Python，没有 Claude 专属的东西。把文件夹放进项目，按 [`references/codex-usage.md`](references/codex-usage.md) 走。
 
-## 依赖
+## 得先装这些
 
-`yt-dlp`、`ffmpeg`、`python3`，以及一个 CJK 字体
-（macOS: PingFang SC / Linux: Noto Sans CJK SC / Windows: Microsoft YaHei）。
+`yt-dlp`、`ffmpeg`、`python3`，再加一个中文字体（见注意事项第 4 条）。
 
-## 脚本
+## 脚本都干嘛的
 
-| 脚本 | 作用 |
+| 脚本 | 干啥 |
 |---|---|
-| `scripts/extract_phrases.py` | 从无标点的 `.vtt` 解析出短语级时间轴 |
-| `scripts/merge_lines.py` | 按字符数 + 起始时间重组成可读字幕行 |
-| `scripts/verify_align.py` | **核心质量闸门**：校验中英 1:1 对齐，定位错位 |
-| `scripts/build_bilingual_ass.py` | 生成中文在上/英文在下的双语 ASS |
-
-## 一个诚实的说明
-
-翻译那一步需要 LLM 在环逐行翻（2 小时视频 ≈ 1600+ 行，省不掉）。本 skill 帮你
-**不踩坑**（无标点、字幕错位、JSON 引号、字体乱码、跳过测试帧），而不是把
-2 小时视频变成一键完成。最关键的质量闸门是 `verify_align.py`——任何模型翻译后
-都要跑它确认 1:1 对齐，再开始烧。
+| `scripts/extract_phrases.py` | 从没标点的 `.vtt` 里把短语和时间轴扒出来 |
+| `scripts/merge_lines.py` | 把碎短语按字数和时间拼成能读的字幕行 |
+| `scripts/verify_align.py` | 对齐校验，中英对不上时直接指出错在哪行（最重要的一步） |
+| `scripts/build_bilingual_ass.py` | 生成中文在上、英文在下的双语字幕 |
 
 ## License
 
