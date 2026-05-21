@@ -1,5 +1,7 @@
 # youtube-bilingual-hardburn
 
+> 仓库地址 · Repo: https://github.com/tengfei0114us/youtube-bilingual-hardburn
+
 把英文（或任意外语）视频做成**中英双语硬字幕**视频——字幕烧进画面像素，
 任何播放器、任何平台都显示，关不掉。适合把英文演讲/访谈/教程发到
 小红书、微信、B站。
